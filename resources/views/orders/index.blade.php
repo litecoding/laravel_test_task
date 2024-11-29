@@ -1,62 +1,81 @@
-@extends('orders.layout')
+@extends('layouts.app')
 
 @section('content')
+    <div class="container">
+        <h2 class="mb-4">Список замовлень</h2>
+        <a href="{{ route('orders.create') }}" class="btn btn-success mb-3">Створити нове замовлення</a>
 
-    <div class="card mt-5">
-        <h2 class="card-header">Orders</h2>
-        <div class="card-body">
+        @if($orders->count())
+            <form method="GET" action="{{ url('/orders') }}" class="d-inline mb-3">
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <input type="text" name="product_name" class="form-control" placeholder="Назва продукту" value="{{ request('product_name') }}">
+                    </div>
 
-            @session('success')
-            <div class="alert alert-success" role="alert"> {{ $value }} </div>
-            @endsession
+                    <div class="col-md-2">
+                        <input type="number" name="amount_min" class="form-control" placeholder="Мін. кількість" value="{{ request('amount_min') }}">
+                    </div>
 
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <a class="btn btn-success btn-sm" href="{{ route('orders.create') }}"> <i class="fa fa-plus"></i> Create New Order</a>
-            </div>
+                    <div class="col-md-2">
+                        <input type="number" name="amount_max" class="form-control" placeholder="Макс. кількість" value="{{ request('amount_max') }}">
+                    </div>
 
-            <table class="table table-bordered table-striped mt-4">
-                <thead>
+                    <div class="col-md-2">
+                        <input type="number" name="user_id" class="form-control" placeholder="ID користувача" value="{{ request('user_id') }}">
+                    </div>
+
+                    <div class="col-md-2">
+                        <select name="status" class="form-select">
+                            <option value="">Виберіть статус</option>
+                            @foreach(\App\Enum\Status::cases() as $status)
+                                <option value="{{ $status->value }}" {{ request('status') == $status->value ? 'selected' : '' }}>
+                                    {{ ucfirst($status->value) }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">Фільтрувати</button>
+                    </div>
+                </div>
+            </form>
+            <br>
+            <table class="table table-bordered table-striped">
+                <thead class="table-light">
                 <tr>
-                    <th width="80px">No</th>
-                    <th>Product name</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th width="250px">Action</th>
+                    <th>#</th>
+                    <th>Назва продукту</th>
+                    <th>Кількість</th>
+                    <th>Статус</th>
+                    <th>Дії</th>
                 </tr>
                 </thead>
-
                 <tbody>
-                @forelse ($orders as $order)
+                @foreach($orders as $order)
                     <tr>
-                        <td>{{ ++$i }}</td>
+                        <td>{{ $order->id }}</td>
                         <td>{{ $order->product_name }}</td>
                         <td>{{ $order->amount }}</td>
-                        <td>{{ $order->status }}</td>
+                        <td>{{ ucfirst($order->status->value) }}</td>
                         <td>
-                            <form action="{{ route('orders.destroy',$order->id) }}" method="POST">
-
-                                <a class="btn btn-info btn-sm" href="{{ route('orders.show',$order->id) }}"><i class="fa-solid fa-list"></i> Show</a>
-
-                                <a class="btn btn-primary btn-sm" href="{{ route('orders.edit',$order->id) }}"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
-
+                            <a href="{{ route('orders.edit', $order) }}" class="btn btn-primary btn-sm">Редагувати</a>
+                            <form action="{{ route('orders.destroy', $order) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
-
-                                <button type="submit" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i> Delete</button>
+                                <button type="submit" class="btn btn-danger btn-sm"
+                                        onclick="return confirm('Ви впевнені, що хочете видалити це замовлення?')">
+                                    Видалити
+                                </button>
                             </form>
                         </td>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="4">There are no data.</td>
-                    </tr>
-                @endforelse
+                @endforeach
                 </tbody>
-
             </table>
-
-            {!! $orders->links() !!}
-
-        </div>
+            {{ $orders->links('pagination::bootstrap-5') }}
+        @else
+            <p class="text-muted">Немає замовлень.</p>
+        @endif
     </div>
 @endsection

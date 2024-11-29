@@ -1,62 +1,44 @@
-@extends('orders.layout')
+@extends('layouts.app')
 
 @section('content')
-
-    <div class="card mt-5">
-        <h2 class="card-header">Add New Order</h2>
-        <div class="card-body">
-
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <a class="btn btn-primary btn-sm" href="{{ route('orders.index') }}"><i class="fa fa-arrow-left"></i> Back</a>
+    <div class="container">
+        <h2 class="mb-4">Створити нове замовлення</h2>
+        <form method="POST" action="{{ route('orders.store') }}">
+            @csrf
+            <div class="mb-3">
+                <label for="product_name" class="form-label">Назва продукту</label>
+                <input type="text" name="product_name" id="product_name"
+                       class="form-control @error('product_name') is-invalid @enderror"
+                       value="{{ old('product_name') }}" required>
+                @error('product_name')
+                <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
             </div>
 
-            <form action="{{ route('orders.store') }}" method="POST">
-                @csrf
+            <div class="mb-3">
+                <label for="amount" class="form-label">Кількість</label>
+                <input type="number" name="amount" id="amount"
+                       class="form-control @error('amount') is-invalid @enderror"
+                       value="{{ old('amount') }}" required>
+                @error('amount')
+                <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
 
-                <div class="mb-3">
-                    <label for="inputName" class="form-label"><strong>Name:</strong></label>
-                    <input
-                        type="text"
-                        name="product_name"
-                        class="form-control @error('product_name') is-invalid @enderror"
-                        id="inputName"
-                        placeholder="Product name">
-                    @error('product_name')
-                    <div class="form-text text-danger">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="mb-3">
-                    <label for="inputAmount" class="form-label"><strong>Amount:</strong></label>
-                    <input
-                        type="number"
-                        inputmode="numeric"
-                        oninput="this.value = this.value.replace(/\D+/g, '')"
-                        name="amount"
-                        class="form-control @error('amount') is-invalid @enderror"
-                        id="inputAmount"
-                        placeholder="Amount">
-                    @error('amount')
-                    <div class="form-text text-danger">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="mb-3">
-                    <label for="inputStatus" class="form-label"><strong>Name:</strong></label>
-                    <select name="status" >
-                    @foreach (App\Enum\Status::values() as $key=>$value)
-                        <option value="{{ $key }}" @selected(old('status') == $value)>
-                            {{ $value }}
-                        </option>
+            <div class="mb-3">
+                <label for="status" class="form-label">Статус</label>
+                <select name="status" id="status" class="form-select @error('status') is-invalid @enderror">
+                    @foreach(\App\Enum\Status::cases() as $status)
+                        <option value="{{ $status->value }}">{{ ucfirst($status->value) }}</option>
                     @endforeach
-                    </select>
-                    @error('status')
-                    <div class="form-text text-danger">{{ $message }}</div>
-                    @enderror
-                </div>
-                <button type="submit" class="btn btn-success"><i class="fa-solid fa-floppy-disk"></i> Submit</button>
-            </form>
+                </select>
+                @error('status')
+                <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
 
-        </div>
+            <button type="submit" class="btn btn-primary">Створити</button>
+            <a href="{{ route('orders.index') }}" class="btn btn-secondary">Назад</a>
+        </form>
     </div>
 @endsection

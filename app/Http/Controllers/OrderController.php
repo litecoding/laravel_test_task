@@ -2,81 +2,90 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\OrderStoreRequest;
-use App\Http\Requests\OrderUpdateRequest;
+use App\Enum\Status;
 use App\Models\Order;
-use Auth;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
-use Request;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request): View
+    // Показати список замовлень
+    public function index(Request $request)
     {
-        $orders = Order::latest()->whereUserId(Auth::id())->paginate(5)->withQueryString();
-
-        return view('orders.index', compact('orders'))
-            ->with('i', (request()->input('page', 1) - 1) * 5);
+        $orders = Order::filter($request->all())->paginate(10);
+        return view('orders.index', compact('orders'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create(): View
+    // Показати форму для створення
+    public function create()
     {
         return view('orders.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(OrderStoreRequest $request): RedirectResponse
+    // Зберегти нове замовлення
+    public function store(Request $request)
     {
-        Order::create($request->validated() + ['user_id' => auth()->id()]);
+        $validated = $request->validate([
+            'product_name' => 'required|string|max:255',
+            'amount' => 'required|integer|min:1',
+            'status' => 'required|in:' . implode(',', array_column(Status::cases(), 'value')),
+        ]);
 
-        return redirect()->route('orders.index')
-            ->with('success', 'Order created successfully.');
+        $validated['user_id'] = Auth::id(); // Призначити поточного користувача
+
+        Order::create($validated);
+
+        // Отримуємо всі фільтри з запиту і виключаємо CSRF токен та HTTP метод
+        $filters = $request->except('_token', '_method');
+
+        return redirect()->route('orders.index', $filters)->with('success', 'Замовлення успішно створено!');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Order $order): View
+    // Показати форму для редагування
+    public function edit(Order $order)
     {
-        return view('orders.show',compact('order'));
+        $this->authorizeAction($order); // Перевірка, чи є доступ
+
+        return view('orders.edit', compact('order'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Order $order): View
+    // Оновити замовлення
+    public function update(Request $request, Order $order)
     {
-        return view('orders.edit',compact('order'));
+        $this->authorizeAction($order); // Перевірка, чи є доступ
+
+        $validated = $request->validate([
+            'product_name' => 'required|string|max:255',
+            'amount' => 'required|integer|min:1',
+            'status' => 'required|in:' . implode(',', array_column(Status::cases(), 'value')),
+        ]);
+
+        $order->update($validated);
+
+        // Отримуємо всі фільтри з запиту і виключаємо CSRF токен та HTTP метод
+        $filters = $request->except('_token', '_method');
+
+        return redirect()->route('orders.index', $filters)->with('success', 'Замовлення успішно оновлено!');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(OrderUpdateRequest $request, Order $order): RedirectResponse
+    // Видалити замовлення
+    public function destroy(Order $order, Request $request)
     {
-        $order->update($request->validated());
+        $this->authorizeAction($order); // Перевірка, чи є доступ
 
-        return redirect()->route('orders.index')
-            ->with('success','Order updated successfully');
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Order $order): RedirectResponse
-    {
         $order->delete();
 
-        return redirect()->route('orders.index')
-            ->with('success','Order deleted successfully');
+        // Отримуємо всі фільтри з запиту і виключаємо CSRF токен та HTTP метод
+        $filters = $request->except('_token', '_method');
+
+        return redirect()->route('orders.index', $filters)->with('success', 'Замовлення успішно видалено!');
+    }
+
+    // Додатковий метод для перевірки доступу до замовлення
+    private function authorizeAction(Order $order)
+    {
+        if ($order->user_id !== Auth::id()) {
+            abort(403, 'Ви не можете виконувати цю дію для цього замовлення.');
+        }
     }
 }
