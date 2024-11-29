@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enum\Status;
 use App\Models\Order;
+use App\Notifications\OrderStatusChanged;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,7 +13,7 @@ class OrderController extends Controller
     // Показати список замовлень
     public function index(Request $request)
     {
-        $orders = Order::filter($request->all())->paginate(10);
+        $orders = Order::filter($request->all())->paginate(10)->withQueryString();
         return view('orders.index', compact('orders'));
     }
 
@@ -35,10 +36,7 @@ class OrderController extends Controller
 
         Order::create($validated);
 
-        // Отримуємо всі фільтри з запиту і виключаємо CSRF токен та HTTP метод
-        $filters = $request->except('_token', '_method');
-
-        return redirect()->route('orders.index', $filters)->with('success', 'Замовлення успішно створено!');
+        return redirect()->route('orders.index')->with('success', 'Замовлення успішно створено!');
     }
 
     // Показати форму для редагування
@@ -60,12 +58,14 @@ class OrderController extends Controller
             'status' => 'required|in:' . implode(',', array_column(Status::cases(), 'value')),
         ]);
 
+        $oldStatus = $order->status;
+
         $order->update($validated);
 
-        // Отримуємо всі фільтри з запиту і виключаємо CSRF токен та HTTP метод
-        $filters = $request->except('_token', '_method');
+        // Надсилання оповіщення
+        $order->user->notify(new OrderStatusChanged($order, $oldStatus));
 
-        return redirect()->route('orders.index', $filters)->with('success', 'Замовлення успішно оновлено!');
+        return redirect()->route('orders.index')->with('success', 'Замовлення успішно оновлено!');
     }
 
     // Видалити замовлення
@@ -75,10 +75,7 @@ class OrderController extends Controller
 
         $order->delete();
 
-        // Отримуємо всі фільтри з запиту і виключаємо CSRF токен та HTTP метод
-        $filters = $request->except('_token', '_method');
-
-        return redirect()->route('orders.index', $filters)->with('success', 'Замовлення успішно видалено!');
+        return redirect()->route('orders.index')->with('success', 'Замовлення успішно видалено!');
     }
 
     // Додатковий метод для перевірки доступу до замовлення

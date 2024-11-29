@@ -13,13 +13,9 @@ trait Filterable
             $query->where('product_name', 'like', '%' . $filters['product_name'] . '%');
         }
 
-        // Фільтр по кількості
-        if (!empty($filters['amount_min'])) {
-            $query->where('amount', '>=', $filters['amount_min']);
-        }
-
-        if (!empty($filters['amount_max'])) {
-            $query->where('amount', '<=', $filters['amount_max']);
+        // Фільтр за кількістю
+        if (!empty($filters['amount'])) {
+            $query->where('amount', '=', $filters['amount']);
         }
 
         // Фільтр по користувачу
